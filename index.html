@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ზეთების ფასები</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#1b1f24;--muted:#6b7380;--line:#e4e7eb;--accent:#d97706;--accent-soft:#fef3e2;
+  --good:#15803d;--good-soft:#e8f6ed;--bad:#c2410c;--bad-soft:#fdeee6}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1b1e23;--text:#e8eaed;--muted:#9aa3ad;--line:#2b3037;
+  --accent:#f59e0b;--accent-soft:#3a2a10;--good:#4ade80;--good-soft:#14301f;--bad:#fb923c;--bad-soft:#3a2216}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+main{max-width:1120px;margin:0 auto;padding:24px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px;margin-bottom:18px}
+h1{font-size:24px;margin:0}
+.sub{color:var(--muted);font-size:14px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 14px;font:inherit;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}
+input{flex:1;min-width:180px}
+.wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+tr:last-child td{border-bottom:none}
+th{font-size:12px;letter-spacing:.03em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.name{min-width:200px}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--accent)}
+.muted{color:var(--muted)} .small{font-size:13px}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:13px;font-weight:600}
+.pill.good{background:var(--good-soft)} .pill.bad{background:var(--bad-soft)} .pill.eq{background:var(--line)}
+.panel{display:none}.panel.on{display:block}
+.log{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 16px;margin-bottom:10px}
+.log h3{font-size:14px;margin:12px 0 4px;color:var(--muted);font-weight:600}
+.log ul{margin:0 0 12px;padding-left:18px} .log li{margin:3px 0}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.note{background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-size:14px;margin-bottom:14px}
+svg.spark{display:block}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1>ზეთების ფასები</h1><div class="sub">Tegeta Motors · ბოლო განახლება: <span id="updated">…</span></div></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab on" data-p="cmp">შედარება ჩვენს ფასებთან</button>
+  <button class="tab" data-p="all">Tegeta-ს ყველა ფასი</button>
+  <button class="tab" data-p="log">ცვლილებები</button>
+</nav>
+
+<section class="panel on" id="cmp">
+  <div class="stats" id="cmpStats"></div>
+  <div class="note small">ჩვენი პროდუქტები და ფასები იწერება ფაილში <b>my_products.csv</b>. Tegeta-ს პროდუქტი ავტომატურად ეძებნება ბრენდით, სიბლანტით და მოცულობით. თუ არასწორად დაწყვილდა, CSV-ის <b>tegeta_url</b> სვეტში ჩასვი სწორი პროდუქტის ლინკი.</div>
+  <div class="wrap"><table>
+    <thead><tr><th>ჩვენი პროდუქტი</th><th class="num">ჩვენი ფასი</th><th>Tegeta-ს პროდუქტი</th><th class="num">Tegeta</th><th class="num">სხვაობა</th></tr></thead>
+    <tbody id="cmpRows"></tbody>
+  </table></div>
+</section>
+
+<section class="panel" id="all">
+  <div class="stats" id="allStats"></div>
+  <div class="bar">
+    <input id="q" placeholder="ძებნა: 5W-30, Mobil, 4L…">
+    <select id="f">
+      <option value="all">ყველა</option><option value="down">გაიაფდა</option>
+      <option value="up">გაძვირდა</option><option value="sale">ფასდაკლებით</option>
+    </select>
+  </div>
+  <div class="wrap"><table>
+    <thead><tr><th data-k="name">პროდუქტი</th><th data-k="price" class="num">ფასი ₾</th><th data-k="old" class="num">ძველი ფასი</th>
+      <th data-k="change" class="num">ცვლილება</th><th data-k="min" class="num">ყველაზე დაბალი</th><th>ისტორია</th></tr></thead>
+    <tbody id="allRows"></tbody>
+  </table></div>
+</section>
+
+<section class="panel" id="log"><div id="logList"></div></section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = v => v == null ? '' : Number(v).toFixed(2);
+const bust = '?t=' + Date.now();
+
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === b.dataset.p));
+});
+
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i+1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ',' || c === ';') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i+1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const head = (rows.shift() || []).map(h => h.trim().toLowerCase());
+  return rows.filter(r => r.some(c => c.trim())).map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
+}
+
+// ---- matching our products to Tegeta products ----
+function features(name) {
+  const s = name.toLowerCase().replace(/,/g, '.');
+  const v = s.match(/(\d{1,2})\s*w\s*[-–]?\s*(\d{2})/);
+  const vol = s.match(/(\d+(?:\.\d+)?)\s*(l|ლ|lt|ltr|liter|litre)\b/);
+  const tokens = s.replace(/(\d{1,2})\s*w\s*[-–]?\s*(\d{2})/, ' ').replace(/(\d+(?:\.\d+)?)\s*(l|ლ|lt|ltr|liter|litre)\b/, ' ')
+    .split(/[^a-z0-9ა-ჰ]+/).filter(t => t.length > 1);
+  return { visc: v ? v[1] + 'w' + v[2] : null, vol: vol ? parseFloat(vol[1]) : null, tokens: new Set(tokens), brand: tokens[0] || '' };
+}
+function score(a, b) {
+  if (a.visc && b.visc && a.visc !== b.visc) return 0;
+  if (a.vol && b.vol && Math.abs(a.vol - b.vol) > 0.01) return 0;
+  const inter = [...a.tokens].filter(t => b.tokens.has(t)).length;
+  const union = new Set([...a.tokens, ...b.tokens]).size || 1;
+  let s = inter / union;
+  if (a.brand && a.brand === b.brand) s += 0.3;
+  if (a.visc && a.visc === b.visc) s += 0.2;
+  if (a.vol && a.vol === b.vol) s += 0.1;
+  return s;
+}
+
+function spark(v) {
+  if (v.length < 2) return '<span class="muted">—</span>';
+  const w = 90, h = 24, mn = Math.min(...v), mx = Math.max(...v), r = mx - mn || 1;
+  const pts = v.map((y, i) => `${(i / (v.length - 1) * w).toFixed(1)},${(h - 2 - (y - mn) / r * (h - 4)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" aria-hidden="true"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+
+async function load() {
+  const [hist, log, csv] = await Promise.all([
+    fetch('data/history.json' + bust).then(r => r.ok ? r.json() : { products: [] }).catch(() => ({ products: [] })),
+    fetch('data/changelog.json' + bust).then(r => r.ok ? r.json() : []).catch(() => []),
+    fetch('my_products.csv' + bust).then(r => r.ok ? r.text() : '').catch(() => ''),
+  ]);
+  $('updated').textContent = hist.updated ? new Date(hist.updated).toLocaleString('ka-GE') : 'ჯერ არ ყოფილა';
+  const latestDay = (hist.updated || '').slice(0, 10);
+
+  const tegeta = hist.products.map(p => {
+    const h = p.history, cur = h[h.length - 1], prev = h.length > 1 ? h[h.length - 2] : null;
+    return { name: p.name, url: p.url, price: cur[1], old: cur[2], change: prev ? cur[1] - prev[1] : 0,
+      min: Math.min(...h.map(x => x[1])), series: h.map(x => x[1]), live: cur[0].slice(0, 10) === latestDay,
+      f: features(p.name) };
+  }).filter(p => p.live);
+
+  renderAll(tegeta);
+  renderCompare(parseCSV(csv), tegeta);
+  renderLog(log);
+}
+
+let sortK = 'name', dir = 1, TEG = [];
+function renderAll(list) {
+  TEG = list;
+  $('allStats').innerHTML = stat(list.length, 'პროდუქტი') + stat(list.filter(i => i.change < 0).length, 'გაიაფდა ბოლო განახლებით')
+    + stat(list.filter(i => i.change > 0).length, 'გაძვირდა') + stat(list.filter(i => i.old).length, 'ფასდაკლებით');
+  drawAll();
+}
+function drawAll() {
+  const q = $('q').value.toLowerCase(), f = $('f').value;
+  const list = TEG.filter(i => i.name.toLowerCase().includes(q))
+    .filter(i => f === 'all' || (f === 'down' && i.change < 0) || (f === 'up' && i.change > 0) || (f === 'sale' && i.old))
+    .sort((a, b) => (a[sortK] > b[sortK] ? 1 : a[sortK] < b[sortK] ? -1 : 0) * dir);
+  $('allRows').innerHTML = list.map(i => {
+    const cls = i.change < 0 ? 'good' : i.change > 0 ? 'bad' : 'muted';
+    return `<tr><td class="name">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}</td>
+      <td class="num"><b>${money(i.price)}</b></td><td class="num muted">${money(i.old)}</td>
+      <td class="num ${cls}">${i.change ? (i.change > 0 ? '+' : '') + money(i.change) : '—'}</td>
+      <td class="num">${money(i.min)}</td><td class="${cls}">${spark(i.series)}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">მონაცემები ჯერ არ არის</td></tr>`;
+}
+$('q').oninput = drawAll; $('f').onchange = drawAll;
+document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => { const k = th.dataset.k; dir = sortK === k ? -dir : 1; sortK = k; drawAll(); });
+
+function renderCompare(mine, tegeta) {
+  const rows = mine.filter(m => m.product).map(m => {
+    const myPrice = parseFloat(String(m.my_price).replace(',', '.'));
+    let match = null;
+    if (m.tegeta_url) match = tegeta.find(t => t.url === m.tegeta_url || t.name.toLowerCase() === m.tegeta_url.toLowerCase()) || null;
+    if (!match) {
+      const f = features(m.product); let best = 0;
+      for (const t of tegeta) { const s = score(f, t.f); if (s > best) { best = s; match = t; } }
+      if (best < 0.45) match = null;
+    }
+    const diff = match && !isNaN(myPrice) ? myPrice - match.price : null;
+    return { m, myPrice, match, diff, manual: !!m.tegeta_url };
+  });
+  const cheaper = rows.filter(r => r.diff != null && r.diff < -0.005).length;
+  const pricier = rows.filter(r => r.diff != null && r.diff > 0.005).length;
+  $('cmpStats').innerHTML = stat(rows.length, 'ჩვენი პროდუქტი') + stat(cheaper, 'ჩვენთან იაფია')
+    + stat(pricier, 'ჩვენთან ძვირია') + stat(rows.filter(r => !r.match).length, 'Tegeta-ზე ვერ მოიძებნა');
+  $('cmpRows').innerHTML = rows.map(r => {
+    let d = '<span class="muted">—</span>';
+    if (r.diff != null) {
+      const pct = r.match.price ? r.diff / r.match.price * 100 : 0;
+      const cls = r.diff < -0.005 ? 'good' : r.diff > 0.005 ? 'bad' : 'eq';
+      d = `<span class="pill ${cls}">${r.diff > 0 ? '+' : ''}${money(r.diff)} ₾ (${pct > 0 ? '+' : ''}${pct.toFixed(1)}%)</span>`;
+    }
+    const t = r.match
+      ? `${r.match.url ? `<a href="${esc(r.match.url)}" target="_blank" rel="noopener">${esc(r.match.name)}</a>` : esc(r.match.name)}${r.manual ? '' : ' <span class="muted small">(ავტომატური)</span>'}`
+      : '<span class="muted">ვერ მოიძებნა</span>';
+    return `<tr><td class="name">${esc(r.m.product)}</td><td class="num"><b>${isNaN(r.myPrice) ? '' : money(r.myPrice)}</b></td>
+      <td class="name">${t}</td><td class="num">${r.match ? money(r.match.price) : ''}</td><td class="num">${d}</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">my_products.csv ცარიელია</td></tr>`;
+}
+
+function renderLog(log) {
+  if (!log.length) { $('logList').innerHTML = '<div class="empty">ცვლილებები ჯერ არ დაფიქსირებულა</div>'; return; }
+  $('logList').innerHTML = log.map(e => `<div class="log"><h3>${esc(new Date(e.at).toLocaleString('ka-GE'))}</h3><ul>${
+    e.changes.map(c => {
+      const n = c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.name)}</a>` : esc(c.name);
+      if (c.type === 'price') { const d = c.to - c.from;
+        return `<li>${n}: ${money(c.from)} → <b>${money(c.to)}</b> ₾ <span class="${d < 0 ? 'good' : 'bad'}">(${d > 0 ? '+' : ''}${money(d)})</span></li>`; }
+      if (c.type === 'new') return `<li>${n}: <span class="good">ახალი</span>, ${money(c.price)} ₾</li>`;
+      return `<li>${n}: <span class="muted">აღარ ჩანს საიტზე</span></li>`;
+    }).join('')}</ul></div>`).join('');
+}
+
+load();
+</script>
+</body>
+</html>
